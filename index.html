@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="历史粘贴板 — 轻量高效的 Windows 剪贴板管理工具，自动记录文本与图片，全文搜索，全局快捷键呼出。完全免费，纯本地存储。">
+<meta name="keywords" content="剪贴板管理,Windows,历史粘贴板,clipboard,剪贴板历史">
+<link rel="icon" href="favicon.ico" type="image/x-icon">
+<title>历史粘贴板 — 轻量高效的 Windows 剪贴板管理工具</title>
+<style>
+  /* ===== Reset & Base ===== */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    color: #333;
+    background: linear-gradient(160deg, #F0F6FB 0%, #E8F2FA 30%, #F5F9FC 60%, #EDF4FB 100%);
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* ===== Decorative Background ===== */
+  .bg-orb {
+    position: fixed;
+    border-radius: 50%;
+    filter: blur(120px);
+    opacity: 0.35;
+    pointer-events: none;
+    z-index: 0;
+  }
+  .bg-orb--1 { width: 500px; height: 500px; background: #B8D8F0; top: -150px; right: -100px; }
+  .bg-orb--2 { width: 400px; height: 400px; background: #C5E0F5; bottom: 10%; left: -120px; }
+  .bg-orb--3 { width: 350px; height: 350px; background: #A8D0EC; top: 50%; right: 30%; }
+
+  /* ===== Container ===== */
+  .container {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 28px;
+    position: relative;
+    z-index: 1;
+  }
+
+  /* ===== Nav ===== */
+  .nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 0;
+  }
+  .nav-logo {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 20px;
+    font-weight: 700;
+    color: #3A6FA0;
+    text-decoration: none;
+  }
+  .nav-logo .logo-icon {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, #C8996B, #B8845A);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    box-shadow: 0 3px 10px rgba(180,130,80,0.3);
+  }
+  .nav-cta {
+    background: #4A90D9;
+    color: #fff;
+    border: none;
+    padding: 10px 24px;
+    border-radius: 22px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.25s;
+    box-shadow: 0 3px 14px rgba(74,144,217,0.3);
+  }
+  .nav-cta:hover { background: #3A7BC8; transform: translateY(-1px); box-shadow: 0 6px 20px rgba(74,144,217,0.4); }
+
+  /* ===== Hero ===== */
+  .hero {
+    text-align: center;
+    padding: 70px 0 50px;
+  }
+  .hero-badge {
+    display: inline-block;
+    background: rgba(74,144,217,0.1);
+    color: #4A90D9;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 22px;
+    letter-spacing: 1px;
+  }
+  .hero h1 {
+    font-size: 48px;
+    font-weight: 800;
+    color: #1E3A54;
+    margin-bottom: 14px;
+    letter-spacing: -0.5px;
+  }
+  .hero h1 span {
+    background: linear-gradient(135deg, #4A90D9, #357ABD);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  .hero-desc {
+    font-size: 18px;
+    color: #5A7A96;
+    max-width: 560px;
+    margin: 0 auto 32px;
+  }
+  .hero-buttons {
+    display: flex;
+    gap: 14px;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 32px;
+    border-radius: 28px;
+    font-size: 16px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.25s;
+    border: none;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #4A90D9, #3D7EC5);
+    color: #fff;
+    box-shadow: 0 6px 22px rgba(74,144,217,0.35);
+  }
+  .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 30px rgba(74,144,217,0.45); }
+  .btn-outline {
+    background: rgba(255,255,255,0.7);
+    color: #4A7BA8;
+    border: 1.5px solid rgba(74,144,217,0.25);
+    backdrop-filter: blur(8px);
+  }
+  .btn-outline:hover { background: rgba(255,255,255,0.9); border-color: #4A90D9; }
+
+  /* ===== App Preview ===== */
+  .preview {
+    text-align: center;
+    padding: 10px 0 50px;
+  }
+  .preview-window {
+    display: inline-block;
+    background: rgba(255,255,255,0.55);
+    backdrop-filter: blur(16px);
+    border: 1px solid rgba(180,200,225,0.5);
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(60,100,150,0.12);
+    overflow: hidden;
+    max-width: 780px;
+    width: 100%;
+  }
+  .preview-titlebar {
+    background: rgba(240,246,252,0.7);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(200,215,230,0.4);
+  }
+  .preview-dot { width: 11px; height: 11px; border-radius: 50%; }
+  .preview-dot--r { background: #E88080; } .preview-dot--y { background: #E8C880; } .preview-dot--g { background: #80C880; }
+  .preview-title {
+    margin-left: 10px;
+    font-size: 12px;
+    color: #7A9AB5;
+  }
+  .preview-body {
+    padding: 16px;
+    text-align: left;
+    min-height: 340px;
+  }
+  .preview-search {
+    background: rgba(255,255,255,0.7);
+    border: 1px solid rgba(180,200,225,0.5);
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-size: 13px;
+    color: #AAA;
+    margin-bottom: 12px;
+    display: flex; gap: 8px;
+  }
+  .preview-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .preview-card {
+    background: rgba(255,255,255,0.75);
+    border: 1px solid rgba(200,218,235,0.5);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    transition: all 0.2s;
+  }
+  .preview-card:hover { border-color: #4A90D9; background: rgba(255,255,255,0.9); }
+  .preview-card--pinned { border-left: 3px solid #E8B44A; }
+  .preview-card-thumb {
+    width: 44px; height: 44px;
+    background: linear-gradient(135deg, #E8F2FA, #D6E8F5);
+    border-radius: 8px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+  }
+  .preview-card-content { flex: 1; min-width: 0; }
+  .preview-card-text { font-size: 13px; color: #555; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .preview-card-meta { font-size: 11px; color: #A0B8CC; margin-top: 2px; }
+  .preview-card-actions { display: flex; gap: 4px; }
+  .preview-card-btn {
+    width: 28px; height: 28px;
+    border-radius: 6px;
+    border: 1px solid rgba(180,200,225,0.4);
+    background: rgba(255,255,255,0.6);
+    font-size: 12px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ===== Features ===== */
+  .section { padding: 50px 0; }
+  .section-label {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    color: #4A90D9;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+  }
+  .section-title {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: #1E3A54;
+    margin-bottom: 14px;
+  }
+  .section-subtitle {
+    text-align: center;
+    font-size: 16px;
+    color: #6A8AA6;
+    max-width: 500px;
+    margin: 0 auto 44px;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+  }
+  .feature-card {
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(190,210,230,0.4);
+    border-radius: 14px;
+    padding: 28px 24px;
+    transition: all 0.3s;
+  }
+  .feature-card:hover {
+    background: rgba(255,255,255,0.75);
+    border-color: rgba(74,144,217,0.3);
+    transform: translateY(-3px);
+    box-shadow: 0 12px 32px rgba(60,100,150,0.1);
+  }
+  .feature-icon {
+    width: 48px; height: 48px;
+    background: linear-gradient(135deg, #E8F2FA, #D0E4F5);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+  .feature-card h3 { font-size: 18px; color: #2C5070; margin-bottom: 8px; }
+  .feature-card p { font-size: 14px; color: #6A8AA6; line-height: 1.65; }
+
+  /* ===== Stats ===== */
+  .stats {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    flex-wrap: wrap;
+    padding: 36px 0;
+  }
+  .stat-item { text-align: center; }
+  .stat-value { font-size: 38px; font-weight: 800; color: #4A90D9; }
+  .stat-label { font-size: 14px; color: #7A9AB5; margin-top: 2px; }
+
+  /* ===== How To Use ===== */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 24px;
+    counter-reset: step;
+  }
+  .step {
+    background: rgba(255,255,255,0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(190,210,230,0.4);
+    border-radius: 14px;
+    padding: 28px 22px 22px;
+    position: relative;
+    text-align: center;
+  }
+  .step-num {
+    width: 36px; height: 36px;
+    background: linear-gradient(135deg, #4A90D9, #357ABD);
+    color: #fff;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    margin: 0 auto 14px;
+  }
+  .step h4 { font-size: 16px; color: #2C5070; margin-bottom: 6px; }
+  .step p { font-size: 13px; color: #7A9AB5; }
+
+  /* ===== Download ===== */
+  .download-section {
+    text-align: center;
+    padding: 60px 0;
+    background: linear-gradient(135deg, rgba(74,144,217,0.06), rgba(74,144,217,0.02));
+    border-radius: 20px;
+    margin: 40px 0;
+  }
+  .download-info {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-top: 24px;
+  }
+  .download-info-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: #7A9AB5;
+    background: rgba(255,255,255,0.5);
+    padding: 8px 16px;
+    border-radius: 20px;
+  }
+
+  /* ===== Footer ===== */
+  .footer {
+    text-align: center;
+    padding: 30px 0;
+    border-top: 1px solid rgba(180,200,225,0.3);
+    margin-top: 20px;
+  }
+  .footer p { font-size: 13px; color: #9AB5CC; }
+
+  /* ===== Responsive ===== */
+  @media (max-width: 768px) {
+    .hero h1 { font-size: 32px; }
+    .section-title { font-size: 24px; }
+    .features-grid { grid-template-columns: 1fr; }
+    .steps { grid-template-columns: 1fr; }
+    .stats { gap: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Decorative Background -->
+<div class="bg-orb bg-orb--1"></div>
+<div class="bg-orb bg-orb--2"></div>
+<div class="bg-orb bg-orb--3"></div>
+
+<!-- Nav -->
+<div class="container">
+  <nav class="nav">
+    <a href="#" class="nav-logo">
+      <div class="logo-icon">📋</div>
+      历史粘贴板
+    </a>
+    <a href="#download" class="nav-cta">⬇ 免费下载</a>
+  </nav>
+</div>
+
+<!-- Hero -->
+<section class="hero container">
+  <div class="hero-badge">🪟 Windows 10 / 11</div>
+  <h1>忘记复制过的内容？<br><span>历史粘贴板</span>帮你记住一切</h1>
+  <p class="hero-desc">
+    轻量、无感的 Windows 剪贴板管理工具。自动记录文本和图片，随时搜索回溯，一键复用。
+  </p>
+  <div class="hero-buttons">
+    <a href="#download" class="btn btn-primary">⬇ 下载最新版本</a>
+    <a href="#features" class="btn btn-outline">✨ 了解功能</a>
+  </div>
+</section>
+
+<!-- App Preview Mockup -->
+<div class="preview container">
+  <div class="preview-window">
+    <div class="preview-titlebar">
+      <div class="preview-dot preview-dot--r"></div>
+      <div class="preview-dot preview-dot--y"></div>
+      <div class="preview-dot preview-dot--g"></div>
+      <span class="preview-title">历史粘贴板</span>
+    </div>
+    <div class="preview-body">
+      <div class="preview-search">
+        <span>🔍</span> 输入关键词搜索...
+        <span style="margin-left:auto;color:#BBB;">📅 起始日期 — 结束日期</span>
+      </div>
+      <div class="preview-cards">
+        <div class="preview-card preview-card--pinned">
+          <div class="preview-card-thumb">📌</div>
+          <div class="preview-card-content">
+            <div class="preview-card-text">今天的会议纪要 — 项目进度讨论与下周计划安排</div>
+            <div class="preview-card-meta">置顶 · 6月15日 10:30</div>
+          </div>
+          <div class="preview-card-actions">
+            <div class="preview-card-btn">📋</div>
+            <div class="preview-card-btn">🗑</div>
+          </div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-thumb">🖼</div>
+          <div class="preview-card-content">
+            <div class="preview-card-text">截图 · 1920 × 1080 px</div>
+            <div class="preview-card-meta">6月15日 10:25</div>
+          </div>
+          <div class="preview-card-actions">
+            <div class="preview-card-btn">📋</div>
+            <div class="preview-card-btn">🗑</div>
+          </div>
+        </div>
+        <div class="preview-card">
+          <div class="preview-card-thumb">📝</div>
+          <div class="preview-card-content">
+            <div class="preview-card-text">https://example.com/project/design-spec-v3</div>
+            <div class="preview-card-meta">6月15日 09:42</div>
+          </div>
+          <div class="preview-card-actions">
+            <div class="preview-card-btn">📋</div>
+            <div class="preview-card-btn">🗑</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Features -->
+<section id="features" class="section container">
+  <div class="section-label">功能特性</div>
+  <h2 class="section-title">你需要的，我们都想到了</h2>
+  <p class="section-subtitle">专注于一件事：让你的剪贴板历史触手可及</p>
+
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon">🔄</div>
+      <h3>自动静默记录</h3>
+      <p>开机自启，后台静默运行。文本、图片自动捕获，无需任何操作，CPU 占用 &lt; 0.1%。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔍</div>
+      <h3>全文搜索</h3>
+      <p>基于 FTS5 全文搜索引擎，输入任意关键词即可快速定位内容。支持日期范围筛选，精准找到你想要的。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">📌</div>
+      <h3>置顶 &amp; 删除</h3>
+      <p>重要内容一键置顶，始终保持可见。不再需要的条目可单条删除或批量清理。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⌨️</div>
+      <h3>全局快捷键</h3>
+      <p><strong>Ctrl+Alt+V</strong> 呼出面板，<strong>Ctrl+Alt+1</strong> 快速粘贴最近一条。无需离开键盘，工作效率翻倍。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🎨</div>
+      <h3>浅色 &amp; 暗色双主题</h3>
+      <p>白天用清爽浅蓝玻璃态，夜晚切舒适暗色模式。切换即时生效，护眼不刺眼。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🖼</div>
+      <h3>图片 &amp; 缩略图</h3>
+      <p>截图、插画自动保存。列表中显示缩略图预览，点击可放大查看，支持滚轮缩放。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">⏱</div>
+      <h3>智能自动清理</h3>
+      <p>自由设定保留期限（7天~自定义），过期内容自动删除。置顶项不受影响，不怕误删。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon">🔒</div>
+      <h3>纯本地，零上传</h3>
+      <p>所有数据存储在本地 SQLite 数据库。不上传、不同步、不联网。你的剪贴板只属于你。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Stats -->
+<div class="stats container">
+  <div class="stat-item">
+    <div class="stat-value">&lt; 0.1%</div>
+    <div class="stat-label">CPU 占用</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">~42 MB</div>
+    <div class="stat-label">安装包大小</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">~60 MB</div>
+    <div class="stat-label">内存占用</div>
+  </div>
+  <div class="stat-item">
+    <div class="stat-value">150ms</div>
+    <div class="stat-label">剪贴板检测间隔</div>
+  </div>
+</div>
+
+<!-- How to Use -->
+<section class="section container">
+  <div class="section-label">快速上手</div>
+  <h2 class="section-title">三步开始使用</h2>
+  <p class="section-subtitle">无需配置，开箱即用</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <h4>下载并运行</h4>
+      <p>下载 ClipboardHistory.exe，双击启动。软件即出现在系统托盘，开始静默记录。</p>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <h4>正常复制内容</h4>
+      <p>像平时一样 Ctrl+C 复制文本或截图。每一条复制记录都会自动保存。</p>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <h4>随时呼出回溯</h4>
+      <p>按 <strong>Ctrl+Alt+V</strong> 打开面板，搜索、点击即可重新复制。就是这么简单。</p>
+    </div>
+  </div>
+</section>
+
+<!-- Download -->
+<section id="download" class="download-section container">
+  <div class="section-label">下载</div>
+  <h2 class="section-title">获取历史粘贴板</h2>
+  <p class="section-subtitle">完全免费，适用于 Windows 10 / 11（64 位）</p>
+
+  <a href="ClipboardHistory.exe" class="btn btn-primary" style="font-size:18px; padding:16px 40px;">
+    ⬇ 下载 ClipboardHistory.exe
+  </a>
+
+  <div class="download-info">
+    <div class="download-info-item">📦 版本 1.0</div>
+    <div class="download-info-item">💾 约 42 MB</div>
+    <div class="download-info-item">🪟 Windows 10 / 11 x64</div>
+    <div class="download-info-item">🆓 完全免费</div>
+  </div>
+
+  <p style="margin-top:20px; font-size:13px; color:#8AA8C0;">
+    下载后双击运行即可。如被 Windows Defender 拦截，请点击「更多信息」→「仍要运行」。
+    <br>软件为便携版，无需安装，建议放置于固定目录后创建桌面快捷方式。
+  </p>
+</section>
+
+<!-- Footer -->
+<footer class="footer container">
+  <p>© 2026 历史粘贴板 · 纯本地 · 不上传 · 不收费 · 无广告</p>
+</footer>
+
+</body>
+</html>

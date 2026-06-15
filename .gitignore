@@ -1,0 +1,5 @@
+# 依赖项（空，纯静态网站）
+# GitHub Pages / Gitee Pages 自动忽略此文件
+node_modules/
+.DS_Store
+Thumbs.db
