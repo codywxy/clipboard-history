@@ -1,0 +1,32 @@
+PackageIdentifier: codywxy.ClipboardHistory
+PackageVersion: 1.0.0
+PackageLocale: zh-CN
+Publisher: codywxy
+PublisherUrl: https://github.com/codywxy/clipboard-history
+PublisherSupportUrl: https://github.com/codywxy/clipboard-history/issues
+PrivacyUrl: https://codywxy.github.io/clipboard-history/privacy
+Author: codywxy
+PackageName: 历史粘贴板
+PackageUrl: https://codywxy.github.io/clipboard-history
+License: MIT
+LicenseUrl: https://github.com/codywxy/clipboard-history/blob/main/LICENSE
+Copyright: Copyright (c) 2025 codywxy
+ShortDescription: Windows 剪贴板历史管理工具 — 自动记录、智能搜索、一键复用
+Description: |
+  历史粘贴板是一款轻量级 Windows 剪贴板管理工具。
+  在后台自动记录你复制的文本和图片，支持全文搜索、日期筛选、
+  置顶、备注、暗色模式、全局快捷键（Ctrl+Alt+V），
+  选中条目即可重新复制到剪贴板。
+  所有数据本地存储，无需联网，安全可靠。
+Tags:
+  - clipboard
+  - clipboard-manager
+  - history
+  - 剪贴板
+  - 粘贴板
+ReleaseNotes: |
+  🍬 糖果色智能图标系统 — 根据内容自动匹配链接🔗/代码💻/邮件✉️等专属图标
+  📝 备注功能上线 — 每条记录可添加备注说明
+  🪟 窗口自由拉伸 + 暗色模式
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0
